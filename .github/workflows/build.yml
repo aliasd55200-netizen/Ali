@@ -1,0 +1,66 @@
+name: Build Shahin
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+concurrency:
+  group: build-shahin
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle 8.13
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.13"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK packages
+        run: sdkmanager "platforms;android-34" "build-tools;35.0.0"
+
+      - name: Apply Shahin branding
+        run: |
+          cat branding/logo.b64.* | base64 -d > branding/logo.webp
+          pip install --quiet pillow
+          python3 branding/make_icons.py
+          sed -i 's|<string name="app_name">Mlm Vpn</string>|<string name="app_name">شاهین</string>|' app/src/main/res/values/strings.xml
+
+      - name: Build debug APK
+        run: |
+          set -o pipefail
+          gradle :app:assembleDebug --stacktrace 2>&1 | tee build.log
+
+      - name: Publish APK to release
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK=$(ls app/build/outputs/apk/debug/*universal*.apk 2>/dev/null | head -1)
+          if [ -z "$APK" ]; then APK=$(ls app/build/outputs/apk/debug/*arm64*.apk | head -1); fi
+          cp "$APK" shahin.apk
+          gh release delete shahin-latest --yes --cleanup-tag || true
+          gh release create shahin-latest shahin.apk --title "Shahin VPN" --notes "Cloud build of Shahin (MLMVPN rebrand)"
+
+      - name: Save build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
