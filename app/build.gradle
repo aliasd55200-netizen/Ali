@@ -9,7 +9,7 @@ android {
     buildToolsVersion "35.0.0"
 
     defaultConfig {
-        applicationId "com.mlmvpn.scanner"
+        applicationId "com.shahin.vpn"
         minSdk 24
         targetSdk 34
         versionCode 74
