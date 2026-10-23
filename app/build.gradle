@@ -12,8 +12,9 @@ android {
         applicationId "com.shahin.vpn"
         minSdk 24
         targetSdk 34
-        versionCode 74
-        versionName "1.2.39"
+        versionCode 75
+        // Shahin revision of upstream 1.2.39: same code, Shahin branding + own update feed.
+        versionName "1.2.40"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -68,7 +69,24 @@ android {
         }
     }
 
+    // Shahin CI signing: a fixed key (held in CI secrets) signs every build, so the
+    // in-app updater can install new builds over old ones. Without the env vars,
+    // local builds fall back to the default debug key.
+    signingConfigs {
+        shahin {
+            storeFile file(System.getenv("SHAHIN_KEYSTORE") ?: "no-keystore.jks")
+            storePassword System.getenv("SHAHIN_KEYSTORE_PASSWORD")
+            keyAlias "shahin"
+            keyPassword System.getenv("SHAHIN_KEYSTORE_PASSWORD")
+        }
+    }
+
     buildTypes {
+        debug {
+            if (System.getenv("SHAHIN_KEYSTORE")) {
+                signingConfig signingConfigs.shahin
+            }
+        }
         release {
             // R8: shrink unused library code (keeps all app code + native core).
             // shrinkResources left off — res is tiny and dynamic lookups exist.
