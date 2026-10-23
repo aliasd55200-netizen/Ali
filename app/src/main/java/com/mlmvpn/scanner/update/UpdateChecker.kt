@@ -50,7 +50,7 @@ import com.mlmvpn.scanner.utils.S
  */
 object UpdateChecker {
     private const val TAG = "UpdateChecker"
-    private const val REPO = "mlmvpn/mlmvpn_android"
+    private const val REPO = "aliasd55200-netizen/Ali"
     private const val API_URL = "https://api.github.com/repos/$REPO/releases/latest"
 
     private const val PREFS = "app_settings"
