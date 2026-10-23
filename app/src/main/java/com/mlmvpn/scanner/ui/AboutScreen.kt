@@ -213,10 +213,10 @@ fun AboutScreen(
             Separator()
             SettingsRow(
                 title = stringResource(R.string.about_github),
-                subtitle = "github.com/mlmvpn",
+                subtitle = "github.com/aliasd55200-netizen/Ali",
                 icon = Icons.Default.Code,
                 tint = Ios.Gray,
-                onClick = { open("https://github.com/mlmvpn") },
+                onClick = { open("https://github.com/aliasd55200-netizen/Ali") },
             )
             Separator()
             SettingsRow(
