@@ -44,7 +44,21 @@ jobs:
           python3 branding/make_icons.py
           sed -i 's|<string name="app_name">Mlm Vpn</string>|<string name="app_name">شاهین</string>|' app/src/main/res/values/strings.xml
 
+      - name: Load Shahin signing key
+        env:
+          SHAHIN_KEYSTORE_B64: ${{ secrets.SHAHIN_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$SHAHIN_KEYSTORE_B64" ]; then
+            echo "$SHAHIN_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/shahin.jks"
+            echo "SHAHIN_KEYSTORE=$RUNNER_TEMP/shahin.jks" >> "$GITHUB_ENV"
+            echo "Signing key loaded"
+          else
+            echo "No signing secret set - building with the ephemeral debug key"
+          fi
+
       - name: Build debug APK
+        env:
+          SHAHIN_KEYSTORE_PASSWORD: ${{ secrets.SHAHIN_KEYSTORE_PASSWORD }}
         run: |
           set -o pipefail
           gradle :app:assembleDebug --stacktrace 2>&1 | tee build.log
@@ -54,11 +68,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          APK=$(ls app/build/outputs/apk/debug/*universal*.apk 2>/dev/null | head -1)
-          if [ -z "$APK" ]; then APK=$(ls app/build/outputs/apk/debug/*arm64*.apk | head -1); fi
-          cp "$APK" shahin.apk
-          gh release delete shahin-latest --yes --cleanup-tag || true
-          gh release create shahin-latest shahin.apk --title "Shahin VPN" --notes "Cloud build of Shahin (MLMVPN rebrand)"
+          VER=$(grep -oP 'versionName\s+"\K[^"]+' app/build.gradle | head -1)
+          echo "Version: $VER"
+          ARM=$(ls app/build/outputs/apk/debug/*arm64-v8a*.apk | head -1)
+          UNI=$(ls app/build/outputs/apk/debug/*universal*.apk | head -1)
+          cp "$ARM" "shahin-$VER-arm64-v8a.apk"
+          cp "$UNI" "shahin-$VER-universal.apk"
+          gh release create "v$VER" "shahin-$VER-arm64-v8a.apk" "shahin-$VER-universal.apk" --title "Shahin $VER" --notes "Shahin $VER - signed build; updates are served from this repo" || gh release upload "v$VER" "shahin-$VER-arm64-v8a.apk" "shahin-$VER-universal.apk" --clobber
 
       - name: Save build log
         if: always()
